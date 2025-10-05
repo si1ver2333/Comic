@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>漫画阅读器</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+        /* 主页 */
+        #library {
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .comic-item {
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.3s ease;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 10px;
+            width: 200px;
+        }
+        .comic-item:hover {
+            transform: scale(1.05);
+            border-color: #4CAF50;
+        }
+        .comic-cover {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        .comic-title {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+        /* 阅读器 */
+        #reader {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #comic-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #111;
+        }
+        #comic-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: #222;
+        }
+        button {
+            padding: 10px 20px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #555;
+        }
+        #progress {
+            width: 80%;
+            background: #333;
+            height: 5px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #progress-bar {
+            height: 100%;
+            background: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        #fullscreen-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主页面：漫画库 -->
+    <div id="library">
+    </div>
+
+    <!-- 阅读器页面 -->
+    <div id="reader">
+        <div id="progress">
+            <div id="progress-bar"></div>
+        </div>
+        <button id="fullscreen-btn">全屏</button>
+        <button id="back-btn">返回库</button>
+        
+        <div id="comic-container">
+            <img id="comic-image" src="" alt="漫画页面">
+        </div>
+        
+        <div id="controls">
+            <button id="prev-btn">上一页</button>
+            <span id="page-info">第 1 / 0 页</span>
+            <button id="next-btn">下一页</button>
+        </div>
+    </div>
+
+    <script>
+        const comics = [
+            {
+                title: '漫画1',
+                cover: 'cover1.jpg',
+                pages: ['comic1_page1.jpg', 'comic1_page2.jpg']
+            },
+            {
+                title: '漫画2',
+                cover: 'cover2.jpg',
+                pages: ['comic2_page1.jpg', 'comic2_page2.jpg']
+            },
+            {
+                title: '漫画3',
+                cover: 'cover3.jpg',
+                pages: ['comic3_page1.jpg', 'comic3_page2.jpg']
+            }
+            // 后续添加：{ title: '...', cover: '...', pages: ['...', '...'] }
+        ];
+
+        let currentComic = null;
+        let currentPage = 0;
+        const library = document.getElementById('library');
+        const reader = document.getElementById('reader');
+        const image = document.getElementById('comic-image');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const pageInfo = document.getElementById('page-info');
+        const progressBar = document.getElementById('progress-bar');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const backBtn = document.getElementById('back-btn');
+        function generateLibrary() {
+            comics.forEach((comic, index) => {
+                const item = document.createElement('div');
+                item.className = 'comic-item';
+                item.innerHTML = `
+                    <img src="${comic.cover}" alt="${comic.title}" class="comic-cover">
+                    <h3 class="comic-title">${comic.title}</h3>
+                `;
+                item.addEventListener('click', () => enterReader(comic));
+                library.appendChild(item);
+            });
+        }
+        function enterReader(comic) {
+            currentComic = comic;
+            currentPage = 0;
+            library.style.display = 'none';
+            reader.style.display = 'flex';
+            loadPage();
+        }
+        backBtn.addEventListener('click', () => {
+            library.style.display = 'flex';
+            reader.style.display = 'none';
+            image.src = '';
+        });
+        function loadPage() {
+            if (currentComic && currentPage >= 0 && currentPage < currentComic.pages.length) {
+                image.src = currentComic.pages[currentPage];
+                pageInfo.textContent = `第 ${currentPage + 1} / ${currentComic.pages.length} 页`;
+                progressBar.style.width = `${((currentPage + 1) / currentComic.pages.length) * 100}%`;
+            }
+        }
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 0) {
+                currentPage--;
+                loadPage();
+            }
+        });
+        nextBtn.addEventListener('click', () => {
+            if (currentPage < currentComic.pages.length - 1) {
+                currentPage++;
+                loadPage();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (reader.style.display === 'flex') {
+                if (e.key === 'ArrowLeft' && currentPage > 0) {
+                    currentPage--;
+                    loadPage();
+                }
+                if (e.key === 'ArrowRight' && currentPage < currentComic.pages.length - 1) {
+                    currentPage++;
+                    loadPage();
+                }
+            }
+        });
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                fullscreenBtn.textContent = '退出全屏';
+                image.style.transform = 'scale(1.1)';
+            } else {
+                document.exitFullscreen();
+                fullscreenBtn.textContent = '全屏';
+                image.style.transform = 'scale(1)';
+            }
+        });
+        generateLibrary();
+    </script>
+</body>
+</html>
